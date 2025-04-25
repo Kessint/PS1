@@ -1,0 +1,25 @@
+#Script to make VM/VMs in Hyper-V from a sysprepped .vhdx
+
+#Variables for VM
+$VMname = Read-Host "Enter VM-name for this machine"
+$VMPath = "Path to VM-folder"
+$VHDXPath = "$VMPath\$VMname.vhdx"
+$VMSwitch = (Get-VMSwitch -Name "*<VSWITCH-NAME-HERE>*").Name #Get-VMSwitch name
+
+#Create VM
+New-VM -Name $VMname -Path $VMPath -Generation 2 -MemoryStartupBytes 1024MB -SwitchName $VMSwitch
+
+#Copy and rename VHDX-Template same as VMname
+$copyParams = @{
+    Path = "Path to Template.vhdx"
+    Destination = $VHDXPath
+}
+Copy-Item @copyParams
+
+#Extra Settings for VM and attaching the .vhdx
+Set-VMMemory -VMName $VMname -DynamicMemoryEnabled $true -MinimumBytes 512MB -MaximumBytes 4GB
+Set-VMProcessor -VMName $VMname -Count 4
+Add-VMHardDiskDrive -VMName $VMname -Path $VHDXPath
+Set-VMFirmware -VMName $VMname -FirstBootDevice (Get-VMHardDiskDrive -VMName $VMname) 
+
+Start-VM -Name $VMname
